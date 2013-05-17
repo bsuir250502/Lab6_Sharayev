@@ -8,7 +8,7 @@
 #define SIZE( x ) (sizeof(x))/(sizeof(*x))
 
 char *myfgets(char *, int);
-int print_manual(void);
+int printManual(void);
 int input_number_in_range(int, int);
 int confirm_choice(void);
 

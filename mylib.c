@@ -30,7 +30,7 @@ char *myfgets(char *str, int num)
     return str;
 }
 
-int print_manual(void)
+int printManual(void)
 {
     char input_buffer[128];
     FILE *fp = fopen("Manual.txt", "r");
