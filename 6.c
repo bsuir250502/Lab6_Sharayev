@@ -1,89 +1,117 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "mylib.h"
 
 char readArgument(int, char **);
-int *fillArr(int);
-int displayArr(int *, int);
-int assumeElem(int *, int);
+int **fillArr(char *, int *);
+int displayArr(int **, int);
+int assumeElem(int **, int);
 int displayBin(char *);
+int createFile(char *);
+int getArrSize(char *);
+int freeMemory(int **, int);
 
 int main(int argc, char **argv)
 {
     FILE *fp;
     char *filename, arg;
     arg = readArgument(argc, argv);
-    int numOfElements, *arr, sum;
+    int arrSize, **arr, sum;
     if(arg == '0') {
-        printf("You need to specify file name with key -n,  set key (-h) to display manual or -f to fill binary file with following name\n");
+        printf("Specify key -r or -c with file name to read or create binary file, or set -h to display manual\n");
         return 0;
     }
     else if (arg == 'h') {
-        printManual();
-    }
-    else {
-        filename = (char *) malloc( (strlen(argv[2])) * sizeof(char));
-	strcpy(filename, argv[2]);
-	if(arg == 'f') {
-	    printf("Enter number of elements of matrix\n");
-	    numOfElements = input_number_in_range(0, 50);
-	    fp = fopen(filename, "w+b");
-	    fwrite(&numOfElements, sizeof(int), 1, fp);
-	    fclose(fp);
-	    return 0;
-	}
+            printManual();
+        }
+        else {
+            filename = (char *) malloc( (strlen(argv[2])) * sizeof(char));
+	        strcpy(filename, argv[2]);
+	   if(arg == 'c') {
+	       createFile(filename);
+	       return 0;
+	   }
     }
     //printf("%s\n", filename);
-    fp = fopen(filename, "r+b");
-    fread(&numOfElements, sizeof(int), 1, fp);
-    fclose(fp);
     
-    arr = fillArr(numOfElements); 
-    displayArr(arr, numOfElements);
-    sum = assumeElem(arr, numOfElements);
+    
+    arr = fillArr(filename, &arrSize); 
+    displayArr(arr, arrSize);
+    sum = assumeElem(arr, arrSize);
     
     fp = fopen(filename, "a+b");
     fseek(fp, 0, 2);
     fwrite(&sum, sizeof(int), 1, fp);
     fclose(fp);
     
-    printf("numOfElements = %d, sum = %d\n", numOfElements, sum);
+    printf("numOfElements = %d, sum = %d\n", arrSize, sum);
     
-    free(arr);
+    freeMemory(arr, arrSize);
     free(filename);
     fclose(fp);
     return 0;
 }
 
-int *fillArr(int numOfElements) 
+int createFile(char *filename)
 {
-    int *arr, i;
+    int numOfElements;
+    FILE *fp;
     
-    arr = (int *)malloc(numOfElements * sizeof(int));
+    if(!(fp = fopen(filename, "w+b")) ) {
+        printf("There is no file with such name\n");
+        return 0;
+    }
+    printf("Enter number of elements of matrix\n");
+    numOfElements = input_number_in_range(0, 50);
+    fwrite(&numOfElements, sizeof(int), 1, fp);
+
+    fclose(fp);
+    return 0;
+}
+
+int **fillArr(char *filename, int *arrSize) 
+{
+    int **arr, i, j;
+    
+    *arrSize = getArrSize(filename);
+    printf("%d\n", *arrSize);
+    arr = (int **)malloc(*arrSize * sizeof(int *));
+    for(i = 0; i < *arrSize; i++) {
+        arr[i] = (int *)malloc(*arrSize * sizeof(int));  
+    }
     printf("Specify elements of the array\n");
-    for(i = 0; i < numOfElements; i++) {
-        arr[i] = i;//input_number_in_range(0, 1024);
+    for(i = 0; i < *arrSize; i++) {
+        for(j = 0; j < *arrSize; j++) {
+            arr[i][j] = input_number_in_range(0, 1024);
+        } 
     }
     
     return arr;
 }
 
-int displayArr(int *arr, int numOfElem)
+int displayArr(int **arr, int arrSize)
 {
-    int i;
-    for(i = 0; i < numOfElem; i++) {
-        printf("%d  ",arr[i]);
+    int i, j;
+
+    for(i = 0; i < arrSize; i++) {
+        for(j = 0; j < arrSize; j++) {
+            printf("%d  ",arr[i][j]);
+        } 
+        puts("");
     }
     
     return 0;
 }
 
-int assumeElem(int *arr, int numOfElem)
+int assumeElem(int **arr, int numOfElem)
 {
-    int i, sum = 0;
-    for(i = 0; i < numOfElem; i++) {
-        sum += arr[i];
+    int i, j, sum = 0;
+
+    for(i = 1; i < numOfElem; i++) {
+        for(j = 0; j < i; j++)
+            sum += arr[i][j];
     }
     
     return sum;
@@ -91,9 +119,9 @@ int assumeElem(int *arr, int numOfElem)
 
 int displayBin(char *filename)
 {
-  FILE *fp;
+    FILE *fp;
     fp = fopen(filename, "r+b");
-    fread(&, sizeof(int), 1, fp);
+    //fread(&, sizeof(int), 1, fp);
     fclose(fp);
     
     return 0;
@@ -108,13 +136,45 @@ char readArgument(int argc, char **argv)
         }        
     }
     else if(argc == 3) {
-        if(!(strcmp(argv[1], "-n"))) {
-            return 'n';
+        if(!(strcmp(argv[1], "-r"))) {
+            return 'r';
         }
-        if(!(strcmp(argv[1], "-f"))) {
-            return 'f';
+        if(!(strcmp(argv[1], "-c"))) {
+            return 'c';
         }
     }
     
     return '0';
+}
+
+int getArrSize(char *filename)
+{
+    int numOfElements;
+    FILE *fp;
+
+    if(!(fp = fopen(filename, "r+b")) ) {
+        printf("File is not opened\n");
+        exit(1);
+    }
+    fread(&numOfElements, sizeof(int), 1, fp);
+    if(!numOfElements) {
+        printf("File %s is empty\n", filename);
+        exit(1);
+    }
+    fclose(fp);
+
+    return pow(numOfElements, 1/2);
+}
+
+int freeMemory(int **arr, int arrSize)
+{
+    int i, j;
+    for(i = 0; i < arrSize; i++) {
+        for(j = 0; j < arrSize; j++) {
+            free(arr[i]);
+        }
+    }
+
+    free(arr);
+    return 0;
 }
